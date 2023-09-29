@@ -6,52 +6,74 @@ local fs   = require "nixio.fs"
 local sysHwmon   = "/sys/class/hwmon"
 local sysThermal = "/sys/class/thermal"
 
+-- Function to read file content
 local function readFile(path)
-	local s = fs.readfile(path)
-	return s and (s:gsub("^%s+", ""):gsub("%s+$", ""))
+    local s = fs.readfile(path)
+    return s and (s:gsub("^%s+", ""):gsub("%s+$", ""))
+end
+
+-- Function to get the average CPU frequency
+local function getAvgCpuFreq()
+    local totalFreq = 0
+    local coreCount = 0
+
+    for line in io.lines("/proc/cpuinfo") do
+        local freq = line:match("cpu MHz%s*:%s*([%d.]+)")
+        if freq then
+            totalFreq = totalFreq + tonumber(freq)
+            coreCount = coreCount + 1
+        end
+    end
+
+    return (coreCount > 0) and math.floor(totalFreq / coreCount) -- Rounding down to the nearest integer
 end
 
 local function list()
-	io.write('{"getTempStatus":{}}')
+    io.write('{"getTempStatus":{}}')
 end
 
 local function getTempStatus()
-	local sensors = {}
+    local sensors = {}
 
-	-- Specify the sensor paths you want to include
-	local specifiedSensors = {
-		["/sys/class/hwmon/hwmon2/temp2_input"] = "CPU Temperature",
-		["/sys/class/hwmon/hwmon2/fan2_input"] = "CPU Fan Speed"
-	}
+    -- Specify the sensor paths you want to include
+    local specifiedSensors = {
+        ["/sys/class/hwmon/hwmon2/temp2_input"] = "CPU Temperature",
+        ["/sys/class/hwmon/hwmon2/fan2_input"] = "CPU Fan Speed"
+    }
 
-	for path, label in pairs(specifiedSensors) do
-		local temp = readFile(path)
-		if temp then
-			sensors[#sensors + 1] = {
-				title = label,
-				sources = {
-					{
-						number = 0,
-						item = nil,
-						label = nil,
-						temp = tonumber(temp)
-					}
-				}
-			}
-		end
-	end
+    for path, label in pairs(specifiedSensors) do
+        local temp = readFile(path)
+        if temp then
+            sensors[#sensors + 1] = {
+                title = label,
+                sources = {
+                    {
+                        number = 0,
+                        item = nil,
+                        label = nil,
+                        temp = tonumber(temp)
+                    }
+                }
+            }
+        end
+    end
 
-	if #sensors > 0 then
-		io.write(json.stringify({["1"] = sensors}))
-	else
-		io.write('{"1": []}') -- Empty array if no specified sensors are found
-	end
+    local avgFreq = getAvgCpuFreq()
+    if avgFreq then
+        sensors[#sensors + 1] = { title = "CPU Frequency", sources = { { number = 0, item = nil, label = nil, temp = avgFreq } } }
+    end
+
+    if #sensors > 0 then
+        io.write(json.stringify({ ["1"] = sensors }))
+    else
+        io.write('{"1": []}') -- Empty array if no specified sensors are found
+    end
 end
 
 if arg[1] == "list" then
-	list()
+    list()
 elseif arg[1] == "call" and arg[2] == "getTempStatus" then
-	getTempStatus()
+    getTempStatus()
 end
 
 os.exit(0)
