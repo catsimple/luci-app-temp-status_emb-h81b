@@ -7,5 +7,5 @@ msgstr ""
 msgid "Sensor"
 msgstr ""
 
-msgid "Temperature"
+msgid "Status"
 msgstr ""
