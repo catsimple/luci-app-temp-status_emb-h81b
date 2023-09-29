@@ -23,7 +23,7 @@ return baseclass.extend({
 
         let tempTable = E('table', { 'class': 'table' }, E('tr', { 'class': 'tr table-titles' }, [
             E('th', { 'class': 'th left', 'width': '33%' }, _('Sensor')),
-            E('th', { 'class': 'th left' }, _('Temperature')),
+            E('th', { 'class': 'th left' }, _('Status')),
         ]));
 
         for (let v of Object.values(tempData[1])) {
@@ -34,7 +34,8 @@ return baseclass.extend({
 
             let value = sources[0].temp;
             let isFanSpeed = value > this.fanSpeedThreshold && value <= this.maxTempValue;
-            let temp = (isFanSpeed) ? value : value / 1000;
+            let isCpuFrequency = (v.title === 'CPU Frequency');
+            let temp = (isFanSpeed && !isCpuFrequency) ? value + ' RPM' : (isCpuFrequency) ? value + ' MHz' : Math.floor(value / 1000)  + ' °C';
             let name = v.title;
             let cellStyle = (isFanSpeed) ?
                 null :
@@ -46,7 +47,7 @@ return baseclass.extend({
 
             tempTable.append(E('tr', { 'class': 'tr' }, [
                 E('td', { 'class': 'td left', 'style': cellStyle, 'data-title': _('Sensor') }, name),
-                E('td', { 'class': 'td left', 'style': cellStyle, 'data-title': _('Temperature') }, (temp === undefined) ? '-' : temp + (isFanSpeed ? ' RPM' : ' °C')),
+                E('td', { 'class': 'td left', 'style': cellStyle, 'data-title': _('Status') }, (temp === undefined) ? '-' : temp),
             ]));
         }
 
