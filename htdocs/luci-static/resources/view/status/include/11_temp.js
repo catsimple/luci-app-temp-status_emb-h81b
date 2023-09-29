@@ -3,7 +3,7 @@
 'require rpc';
 
 return baseclass.extend({
-    title: _('Temperature'),
+    title: _('CPU Info'),
     tempWarning: 55,
     tempCritical: 75,
     fanSpeedThreshold: 150,
