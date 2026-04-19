@@ -3,16 +3,13 @@
 local json = require "luci.jsonc"
 local fs   = require "nixio.fs"
 
-local sysHwmon   = "/sys/class/hwmon"
-local sysThermal = "/sys/class/thermal"
+local configDir = "/etc/temp-status"
 
--- Function to read file content
 local function readFile(path)
     local s = fs.readfile(path)
     return s and (s:gsub("^%s+", ""):gsub("%s+$", ""))
 end
 
--- Function to get the average CPU frequency
 local function getAvgCpuFreq()
     local totalFreq = 0
     local coreCount = 0
@@ -25,48 +22,162 @@ local function getAvgCpuFreq()
         end
     end
 
-    return (coreCount > 0) and math.floor(totalFreq / coreCount) -- Rounding down to the nearest integer
+    return (coreCount > 0) and math.floor(totalFreq / coreCount)
 end
 
 local function list()
     io.write('{"getTempStatus":{}}')
 end
 
+local function loadConfigFile(path)
+    local chunk, err = loadfile(path)
+    if not chunk then
+        return nil, err
+    end
+
+    local ok, config = pcall(chunk)
+    if not ok then
+        return nil, config
+    end
+
+    return config
+end
+
+local function normalizeEntry(entry, sourceFile)
+    if type(entry) ~= "table" then
+        return nil
+    end
+
+    local path = entry.path or entry.sysfs or entry.file
+    if type(path) ~= "string" or path == "" then
+        return nil
+    end
+
+    return {
+        title = entry.title or entry.label or path,
+        kind = entry.kind or "raw",
+        unit = entry.unit,
+        path = path,
+        digits = tonumber(entry.digits),
+        warn = tonumber(entry.warn),
+        critical = tonumber(entry.critical),
+        scale = tonumber(entry.scale),
+        offset = tonumber(entry.offset),
+        order = tonumber(entry.order) or 0,
+        enabled = (entry.enabled ~= false),
+        transform = (type(entry.transform) == "function") and entry.transform or nil,
+        source = sourceFile
+    }
+end
+
+local function loadSensorDefinitions()
+    local sensors = {}
+
+    if not fs.access(configDir) then
+        return sensors
+    end
+
+    for name in fs.dir(configDir) do
+        if name:match("%.conf$") then
+            local path = configDir .. "/" .. name
+            local config = loadConfigFile(path)
+
+            if type(config) == "table" then
+                local list = config.sensors or config.items or config
+                if type(list) == "table" then
+                    for _, entry in ipairs(list) do
+                        local normalized = normalizeEntry(entry, name)
+                        if normalized and normalized.enabled then
+                            sensors[#sensors + 1] = normalized
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    table.sort(sensors, function(a, b)
+        if a.order ~= b.order then
+            return a.order < b.order
+        end
+
+        if a.title ~= b.title then
+            return a.title < b.title
+        end
+
+        return a.path < b.path
+    end)
+
+    return sensors
+end
+
+local function applyTransform(entry, value)
+    if entry.transform then
+        local ok, result = pcall(entry.transform, value)
+        if ok and type(result) == "number" then
+            return result
+        end
+    end
+
+    local scale = entry.scale or 1
+    local offset = entry.offset or 0
+    return value * scale + offset
+end
+
+local function addSensor(sensors, entry, value)
+    sensors[#sensors + 1] = {
+        title = entry.title,
+        kind = entry.kind,
+        unit = entry.unit,
+        digits = entry.digits,
+        warn = entry.warn,
+        critical = entry.critical,
+        sources = {
+            {
+                number = 0,
+                item = nil,
+                label = nil,
+                temp = value
+            }
+        }
+    }
+end
+
 local function getTempStatus()
     local sensors = {}
 
-    -- Specify the sensor paths you want to include
-    local specifiedSensors = {
-        ["/sys/class/hwmon/hwmon2/temp2_input"] = "CPU Temperature",
-        ["/sys/class/hwmon/hwmon2/fan2_input"] = "CPU Fan Speed"
-    }
-
-    for path, label in pairs(specifiedSensors) do
-        local temp = readFile(path)
-        if temp then
-            sensors[#sensors + 1] = {
-                title = label,
-                sources = {
-                    {
-                        number = 0,
-                        item = nil,
-                        label = nil,
-                        temp = tonumber(temp)
-                    }
-                }
-            }
+    for _, entry in ipairs(loadSensorDefinitions()) do
+        local raw = readFile(entry.path)
+        if raw then
+            local value = tonumber(raw)
+            if value then
+                addSensor(sensors, entry, applyTransform(entry, value))
+            end
         end
     end
 
     local avgFreq = getAvgCpuFreq()
     if avgFreq then
-        sensors[#sensors + 1] = { title = "CPU Frequency", sources = { { number = 0, item = nil, label = nil, temp = avgFreq } } }
+        sensors[#sensors + 1] = {
+            title = "CPU Frequency",
+            kind = "frequency",
+            unit = "MHz",
+            digits = 0,
+            sources = {
+                {
+                    number = 0,
+                    item = nil,
+                    label = nil,
+                    temp = avgFreq
+                }
+            }
+        }
     end
 
     if #sensors > 0 then
         io.write(json.stringify({ ["1"] = sensors }))
     else
-        io.write('{"1": []}') -- Empty array if no specified sensors are found
+        io.write('{"1": []}')
     end
 end
 

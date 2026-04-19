@@ -9,17 +9,47 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 2.3\n"
 "Last-Translator: \n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
-"Language: ru\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"Language: zh_CN\n"
 
 msgid "CPU Info"
 msgstr "CPU信息"
 
 msgid "No temperature sensors available"
-msgstr "无可用传感器状态"
+msgstr "没有可用的温度传感器"
 
 msgid "Sensor"
 msgstr "传感器"
 
 msgid "Status"
 msgstr "状态"
+
+msgid "CPU Vcore"
+msgstr "CPU 核心电压"
+
+msgid "+5V"
+msgstr "+5V"
+
+msgid "+3.3V"
+msgstr "+3.3V"
+
+msgid "+12V"
+msgstr "+12V"
+
+msgid "PCH +1.0V"
+msgstr "PCH +1.0V"
+
+msgid "CPU Temperature"
+msgstr "CPU 温度"
+
+msgid "PCH Temperature"
+msgstr "PCH 温度"
+
+msgid "CPU Fan Speed"
+msgstr "CPU 风扇转速"
+
+msgid "CHA Fan Speed"
+msgstr "机箱风扇转速"
+
+msgid "CPU Frequency"
+msgstr "CPU 频率"

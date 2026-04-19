@@ -12,3 +12,33 @@ msgstr ""
 
 msgid "Status"
 msgstr ""
+
+msgid "CPU Vcore"
+msgstr ""
+
+msgid "+5V"
+msgstr ""
+
+msgid "+3.3V"
+msgstr ""
+
+msgid "+12V"
+msgstr ""
+
+msgid "PCH +1.0V"
+msgstr ""
+
+msgid "CPU Temperature"
+msgstr ""
+
+msgid "PCH Temperature"
+msgstr ""
+
+msgid "CPU Fan Speed"
+msgstr ""
+
+msgid "CHA Fan Speed"
+msgstr ""
+
+msgid "CPU Frequency"
+msgstr ""

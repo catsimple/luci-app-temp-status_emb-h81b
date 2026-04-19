@@ -6,8 +6,6 @@ return baseclass.extend({
     title: _('CPU Info'),
     tempWarning: 55,
     tempCritical: 75,
-    fanSpeedThreshold: 150,
-    maxTempValue: 10000,
     callTempStatus: rpc.declare({
         object: 'luci.temp-status',
         method: 'getTempStatus',
@@ -15,6 +13,33 @@ return baseclass.extend({
     }),
     load: function () {
         return L.resolveDefault(this.callTempStatus(), null);
+    },
+    formatValue: function (sensor, value) {
+        let kind = sensor.kind || '';
+        let unit = sensor.unit || '';
+        let digits = (typeof sensor.digits === 'number') ? sensor.digits : null;
+
+        if (kind === 'frequency') {
+            return `${Math.round(value)} ${unit || 'MHz'}`;
+        }
+
+        if (kind === 'fan') {
+            return `${Math.round(value)} ${unit || 'RPM'}`;
+        }
+
+        if (kind === 'temp') {
+            return `${value.toFixed(digits !== null ? digits : 1)} ${unit || '\u00B0C'}`;
+        }
+
+        if (kind === 'voltage') {
+            return `${value.toFixed(digits !== null ? digits : 3)} ${unit || 'V'}`;
+        }
+
+        if (unit) {
+            return `${value.toFixed(digits !== null ? digits : 3)} ${unit}`;
+        }
+
+        return `${value}`;
     },
     render: function (tempData) {
         if (!tempData || !tempData[1]) {
@@ -33,21 +58,21 @@ return baseclass.extend({
             }
 
             let value = sources[0].temp;
-            let isFanSpeed = value > this.fanSpeedThreshold && value <= this.maxTempValue;
-            let isCpuFrequency = (v.title === 'CPU Frequency');
-            let temp = (isFanSpeed && !isCpuFrequency) ? value + ' RPM' : (isCpuFrequency) ? value + ' MHz' : Math.floor(value / 1000)  + ' °C';
-            let name = v.title;
-            let cellStyle = (isFanSpeed) ?
-                null :
-                (temp >= this.tempCritical) ?
+            let displayValue = this.formatValue(v, value);
+            let label = (v.title) ? _(v.title) : '-';
+            let warn = (typeof v.warn === 'number') ? v.warn : this.tempWarning;
+            let critical = (typeof v.critical === 'number') ? v.critical : this.tempCritical;
+            let cellStyle = (v.kind === 'temp') ?
+                (value >= critical) ?
                     'color:#f5163b !important; font-weight:bold !important' :
-                    (temp >= this.tempWarning) ?
+                    (value >= warn) ?
                         'color:#ff821c !important; font-weight:bold !important' :
-                        null;
+                        null :
+                null;
 
             tempTable.append(E('tr', { 'class': 'tr' }, [
-                E('td', { 'class': 'td left', 'style': cellStyle, 'data-title': _('Sensor') }, name),
-                E('td', { 'class': 'td left', 'style': cellStyle, 'data-title': _('Status') }, (temp === undefined) ? '-' : temp),
+                E('td', { 'class': 'td left', 'style': cellStyle, 'data-title': _('Sensor') }, label),
+                E('td', { 'class': 'td left', 'style': cellStyle, 'data-title': _('Status') }, (displayValue === undefined) ? '-' : displayValue),
             ]));
         }
 
