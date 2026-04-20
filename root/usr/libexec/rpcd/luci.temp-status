@@ -61,6 +61,9 @@ local function normalizeEntry(entry, sourceFile)
         digits = tonumber(entry.digits),
         warn = tonumber(entry.warn),
         critical = tonumber(entry.critical),
+        base = tonumber(entry.base or entry.baseVoltage or entry.base_voltage),
+        warnPercent = tonumber(entry.warn_percent or entry.warnPercent or entry.warnDeviationPercent),
+        criticalPercent = tonumber(entry.critical_percent or entry.criticalPercent or entry.criticalDeviationPercent),
         scale = tonumber(entry.scale),
         offset = tonumber(entry.offset),
         order = tonumber(entry.order) or 0,
@@ -132,6 +135,9 @@ local function addSensor(sensors, entry, value)
         digits = entry.digits,
         warn = entry.warn,
         critical = entry.critical,
+        base = entry.base,
+        warnPercent = entry.warnPercent,
+        criticalPercent = entry.criticalPercent,
         sources = {
             {
                 number = 0,

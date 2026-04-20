@@ -41,6 +41,14 @@ return baseclass.extend({
 
         return `${value}`;
     },
+    getVoltageDeviation: function (sensor, value) {
+        let base = (typeof sensor.base === 'number') ? sensor.base : null;
+        if (base === null || base <= 0) {
+            return null;
+        }
+
+        return Math.abs(value - base) / base * 100;
+    },
     render: function (tempData) {
         if (!tempData || !tempData[1]) {
             return;
@@ -62,13 +70,35 @@ return baseclass.extend({
             let label = (v.title) ? _(v.title) : '-';
             let warn = (typeof v.warn === 'number') ? v.warn : this.tempWarning;
             let critical = (typeof v.critical === 'number') ? v.critical : this.tempCritical;
-            let cellStyle = (v.kind === 'temp') ?
-                (value >= critical) ?
+            let cellStyle = null;
+
+            if (v.kind === 'temp') {
+                cellStyle = (value >= critical) ?
                     'color:#f5163b !important; font-weight:bold !important' :
                     (value >= warn) ?
                         'color:#ff821c !important; font-weight:bold !important' :
-                        null :
-                null;
+                        null;
+            }
+            else if (v.kind === 'voltage') {
+                let deviation = this.getVoltageDeviation(v, value);
+                let warnPercent = (typeof v.warnPercent === 'number') ? v.warnPercent : null;
+                let criticalPercent = (typeof v.criticalPercent === 'number') ? v.criticalPercent : null;
+
+                if (deviation !== null) {
+                    cellStyle = (criticalPercent !== null && deviation >= criticalPercent) ?
+                        'color:#f5163b !important; font-weight:bold !important' :
+                        (warnPercent !== null && deviation >= warnPercent) ?
+                            'color:#ff821c !important; font-weight:bold !important' :
+                            null;
+                }
+                else {
+                    cellStyle = (value >= critical) ?
+                        'color:#f5163b !important; font-weight:bold !important' :
+                        (value >= warn) ?
+                            'color:#ff821c !important; font-weight:bold !important' :
+                            null;
+                }
+            }
 
             tempTable.append(E('tr', { 'class': 'tr' }, [
                 E('td', { 'class': 'td left', 'style': cellStyle, 'data-title': _('Sensor') }, label),

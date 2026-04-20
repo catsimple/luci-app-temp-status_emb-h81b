@@ -92,8 +92,25 @@ Supported fields / 支持字段:
 - `digits`: decimal precision on the status page / 显示小数位数
 - `unit`: display unit / 显示单位
 - `warn` and `critical`: temperature thresholds / 温度阈值
+- `base`, `baseVoltage`, or `base_voltage`: voltage reference value / 电压基准值
+- `warn_percent` or `warnPercent`: voltage warning deviation percent / 电压告警偏差百分比
+- `critical_percent` or `criticalPercent`: voltage critical deviation percent / 电压严重偏差百分比
 - `order`: sort order / 排序顺序
 - `enabled`: set to `false` to skip an entry / 设为 `false` 可禁用
+
+Voltage alarm logic:
+
+`abs(current - base) / base * 100`
+
+- if the deviation reaches `warn_percent`, the row turns orange
+- if the deviation reaches `critical_percent`, the row turns red
+
+电压告警逻辑：
+
+`abs(当前值 - 基准值) / 基准值 * 100`
+
+- 偏差达到 `warn_percent` 时变橙色
+- 偏差达到 `critical_percent` 时变红色
 
 ### Translation / 翻译
 
